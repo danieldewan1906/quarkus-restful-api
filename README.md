@@ -1,4 +1,4 @@
-# code-with-daniel
+# quarkus-restful-api
 
 This project uses Quarkus, the Supersonic Subatomic Java Framework.
 
