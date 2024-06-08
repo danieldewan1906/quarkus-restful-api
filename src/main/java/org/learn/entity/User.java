@@ -31,6 +31,12 @@ public class User extends PanacheEntityBase implements Serializable {
     @Column(name = "password", length = 255, nullable = false)
     private String password;
 
+    @Column(name = "is_affiliate")
+    private Boolean isAffiliate = false;
+
+    @Column(name = "is_merchant")
+    private Boolean isMerchant = false;
+
     @Column(name = "token", length = 1000, nullable = true)
     private String token;
 }

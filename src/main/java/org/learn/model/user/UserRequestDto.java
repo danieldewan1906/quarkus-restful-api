@@ -1,14 +1,13 @@
-package org.learn.model.auth;
+package org.learn.model.user;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record RegisterRequest (
+public record UserRequestDto(
         @NotBlank
         String name,
         @NotBlank
-        String email,
-        @NotBlank
         String password,
-        String role
+        @NotBlank
+        String confirmPassword
 ) {
 }
