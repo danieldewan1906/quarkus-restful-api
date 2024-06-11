@@ -22,4 +22,12 @@ public class AdminResource {
         adminService.activatedMerchant(merchantId);
         return new WebResponse<>(200, "OK", true);
     }
+
+    @PUT
+    @Path("{affiliateId}")
+    @RolesAllowed({"admin"})
+    public WebResponse<Boolean> activatedAffiliate(@PathParam("affiliateId") String affiliateId) {
+        adminService.activatedAffiliate(affiliateId);
+        return new WebResponse<>(200, "OK", true);
+    }
 }

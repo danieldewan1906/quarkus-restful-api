@@ -9,6 +9,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.SecurityContext;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.learn.core.WebResponse;
+import org.learn.model.affiliate.AffiliateDto;
+import org.learn.model.affiliate.AffiliateRequestDto;
+import org.learn.model.affiliate.AffiliateRequestProductDto;
 import org.learn.model.merchant.MerchantDto;
 import org.learn.model.merchant.MerchantRequestDto;
 import org.learn.model.user.UserDto;
@@ -49,5 +52,21 @@ public class UserResource {
     public WebResponse<MerchantDto> createMerchant(@Valid MerchantRequestDto request) {
         MerchantDto merchant = userService.createMerchant(token.getSubject(), request);
         return new WebResponse<>(200, "OK", merchant);
+    }
+
+    @PUT
+    @Path("/affiliate")
+    @RolesAllowed({"user"})
+    public WebResponse<AffiliateDto> requestAffiliate(@Valid AffiliateRequestDto request) {
+        AffiliateDto affiliate = userService.requestForAffiliate(token.getSubject(), request);
+        return new WebResponse<>(200, "OK", affiliate);
+    }
+
+    @POST
+    @Path("/affiliate/products")
+    @RolesAllowed({"user"})
+    public WebResponse<AffiliateDto> requestProduct(@Valid AffiliateRequestProductDto request) {
+        AffiliateDto affiliate = userService.requestProducts(token.getSubject(), request);
+        return new WebResponse<>(200, "OK", affiliate);
     }
 }

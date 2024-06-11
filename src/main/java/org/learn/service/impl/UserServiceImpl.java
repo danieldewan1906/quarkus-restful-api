@@ -7,18 +7,23 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.WebApplicationException;
 import org.learn.core.StringUtils;
-import org.learn.entity.Merchant;
-import org.learn.entity.User;
+import org.learn.entity.*;
+import org.learn.model.affiliate.AffiliateDto;
+import org.learn.model.affiliate.AffiliateRequestDto;
+import org.learn.model.affiliate.AffiliateRequestProductDto;
 import org.learn.model.merchant.MerchantDto;
 import org.learn.model.merchant.MerchantRequestDto;
 import org.learn.model.product.ProductDto;
 import org.learn.model.user.UserDto;
 import org.learn.model.user.UserRequestDto;
+import org.learn.repository.AffiliateProductRepository;
+import org.learn.repository.AffiliateRepository;
 import org.learn.repository.MerchantRepository;
 import org.learn.repository.UserRepository;
 import org.learn.service.ProductService;
 import org.learn.service.UserService;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,6 +36,12 @@ public class UserServiceImpl implements UserService {
     private MerchantRepository merchantRepository;
     @Inject
     private ProductService productService;
+    @Inject
+    private AffiliateRepository affiliateRepository;
+    @Inject
+    private ObjectMapper mapper;
+    @Inject
+    private AffiliateProductRepository affiliateProductRepository;
 
     @Override
     @Transactional
@@ -86,5 +97,63 @@ public class UserServiceImpl implements UserService {
         user.setIsMerchant(true);
         userRepository.persist(user);
         return new MerchantDto(merchant.getId(), merchant.getUser().getId(), merchant.getAddress(), merchant.getPhoneNumber());
+    }
+
+    @Override
+    @Transactional
+    public AffiliateDto requestForAffiliate(String email, AffiliateRequestDto request) {
+        User user = userRepository.findByEmail(email).firstResultOptional().orElseThrow(() -> new WebApplicationException("User Not Found", 404));
+        if (user.getIsMerchant()) {
+            throw new WebApplicationException("User is Merchant. Cannot Request For Affiliate", 500);
+        }
+
+        Affiliate checkAffiliate = affiliateRepository.findByUserId(user).firstResult();
+        if (checkAffiliate != null) {
+            throw new WebApplicationException("User Already Affiliate!", 500);
+        }
+
+        Affiliate affiliate = new Affiliate();
+        affiliate.setPhoneNumber(request.phoneNumber());
+        affiliate.setAddress(request.address());
+        affiliate.setUser(user);
+        affiliate.setTotalFee(0L);
+        affiliateRepository.persist(affiliate);
+
+        user.setIsAffiliate(true);
+        userRepository.persist(user);
+        return new AffiliateDto(affiliate.getId(), affiliate.getUser().getId(), affiliate.getAddress(), affiliate.getPhoneNumber(), affiliate.getTotalFee(), null);
+    }
+
+    @Override
+    @Transactional
+    public AffiliateDto requestProducts(String email, AffiliateRequestProductDto request) {
+        User user = userRepository.findByEmail(email).firstResultOptional().orElseThrow(() -> new WebApplicationException("User Not Found", 404));
+        if (!user.getIsAffiliate()) {
+            throw new WebApplicationException("User is Not Affiliate. Cannot Request Product", 500);
+        }
+
+        Affiliate affiliate = affiliateRepository.findByUserId(user).firstResult();
+        if (!affiliate.getIsActive()) {
+            throw new WebApplicationException("User Affiliate Doesn't Active!", 500);
+        }
+
+        List<Product> products = new ArrayList<>();
+        for (int i = 0; i < request.productCode().size(); i++) {
+            ProductDto productDto = productService.getProductDetail(request.productCode().get(i));
+            Product product = mapper.convertValue(productDto, Product.class);
+            products.add(product);
+
+            AffiliateProducts affiliateProducts = new AffiliateProducts();
+            affiliateProducts.setAffiliate(affiliate);
+            affiliateProducts.setIsValidMerchant(false);
+            affiliateProducts.setProduct(product);
+
+            String url = productDto.linkProduct() + "&affiliate=" + affiliate.getId();
+            affiliateProducts.setLinkAffiliate(url);
+            affiliateProductRepository.persist(affiliateProducts);
+        }
+
+        List<ProductDto> productDtos = products.stream().map(data -> mapper.convertValue(data, ProductDto.class)).toList();
+        return new AffiliateDto(affiliate.getId(), affiliate.getUser().getId(), affiliate.getAddress(), affiliate.getPhoneNumber(), affiliate.getTotalFee(), productDtos);
     }
 }
