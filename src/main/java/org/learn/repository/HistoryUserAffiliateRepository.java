@@ -4,14 +4,14 @@ import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.learn.entity.Affiliate;
-import org.learn.entity.AffiliateProducts;
+import org.learn.entity.HistoryUserAffiliate;
 
 import java.util.List;
 
 @ApplicationScoped
-public class AffiliateProductRepository implements PanacheRepositoryBase<AffiliateProducts, String> {
+public class HistoryUserAffiliateRepository implements PanacheRepositoryBase<HistoryUserAffiliate, String> {
 
-    public PanacheQuery<AffiliateProducts> getByReferralCode(String referralCode) {
-        return find("referralCode", referralCode);
+    public List<HistoryUserAffiliate> getByAffiliate(Affiliate affiliate) {
+        return list("affiliate", affiliate);
     }
 }

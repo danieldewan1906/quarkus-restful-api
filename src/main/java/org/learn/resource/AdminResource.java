@@ -16,7 +16,7 @@ public class AdminResource {
     private AdminService adminService;
 
     @PUT
-    @Path("{merchantId}")
+    @Path("/merchant/{merchantId}")
     @RolesAllowed({"admin"})
     public WebResponse<Boolean> activatedMerchant(@PathParam("merchantId") String merchantId) {
         adminService.activatedMerchant(merchantId);
@@ -24,7 +24,7 @@ public class AdminResource {
     }
 
     @PUT
-    @Path("{affiliateId}")
+    @Path("/affiliate/{affiliateId}")
     @RolesAllowed({"admin"})
     public WebResponse<Boolean> activatedAffiliate(@PathParam("affiliateId") String affiliateId) {
         adminService.activatedAffiliate(affiliateId);

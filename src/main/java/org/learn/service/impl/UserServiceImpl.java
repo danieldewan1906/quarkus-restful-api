@@ -16,16 +16,12 @@ import org.learn.model.merchant.MerchantRequestDto;
 import org.learn.model.product.ProductDto;
 import org.learn.model.user.UserDto;
 import org.learn.model.user.UserRequestDto;
-import org.learn.repository.AffiliateProductRepository;
-import org.learn.repository.AffiliateRepository;
-import org.learn.repository.MerchantRepository;
-import org.learn.repository.UserRepository;
+import org.learn.repository.*;
 import org.learn.service.ProductService;
 import org.learn.service.UserService;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class UserServiceImpl implements UserService {
@@ -42,12 +38,24 @@ public class UserServiceImpl implements UserService {
     private ObjectMapper mapper;
     @Inject
     private AffiliateProductRepository affiliateProductRepository;
+    @Inject
+    private HistoryUserAffiliateRepository historyUserAffiliateRepository;
 
     @Override
     @Transactional
     public UserDto getUserByEmail(String email) {
         User user = userRepository.findByEmail(email).firstResultOptional().orElseThrow(() -> new WebApplicationException("User Not Found", 404));
-        return new UserDto(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getIsMerchant(), user.getIsAffiliate(), null);
+        Double totalFee = 0.0;
+        if (user.getIsAffiliate()) {
+            Affiliate affiliate = affiliateRepository.findByUserId(user).firstResultOptional()
+                    .orElseThrow(() -> new WebApplicationException("Affiliate Not Found", 404));
+
+            List<HistoryUserAffiliate> historyUserAffiliates = historyUserAffiliateRepository.getByAffiliate(affiliate);
+            for (int i = 0; i < historyUserAffiliates.size(); i++) {
+                totalFee += historyUserAffiliates.get(i).getTotalFee();
+            }
+        }
+        return new UserDto(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getIsMerchant(), user.getIsAffiliate(), totalFee, null);
     }
 
     @Override
@@ -58,10 +66,21 @@ public class UserServiceImpl implements UserService {
 
         if (user.getIsMerchant()) {
             List<ProductDto> productDtos = productService.getProductByMerchant(user.getEmail());
-            return new UserDto(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getIsMerchant(), user.getIsAffiliate(), productDtos);
+            return new UserDto(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getIsMerchant(), user.getIsAffiliate(), 0.0, productDtos);
         }
 
-        return new UserDto(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getIsMerchant(), user.getIsAffiliate(), null);
+        Double totalFee = 0.0;
+        if (user.getIsAffiliate()) {
+            Affiliate affiliate = affiliateRepository.findByUserId(user).firstResultOptional()
+                    .orElseThrow(() -> new WebApplicationException("Affiliate Not Found", 404));
+
+            List<HistoryUserAffiliate> historyUserAffiliates = historyUserAffiliateRepository.getByAffiliate(affiliate);
+            for (int i = 0; i < historyUserAffiliates.size(); i++) {
+                totalFee += historyUserAffiliates.get(i).getTotalFee();
+            }
+        }
+
+        return new UserDto(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getIsMerchant(), user.getIsAffiliate(), totalFee, null);
     }
 
     @Override
@@ -116,12 +135,11 @@ public class UserServiceImpl implements UserService {
         affiliate.setPhoneNumber(request.phoneNumber());
         affiliate.setAddress(request.address());
         affiliate.setUser(user);
-        affiliate.setTotalFee(0L);
         affiliateRepository.persist(affiliate);
 
         user.setIsAffiliate(true);
         userRepository.persist(user);
-        return new AffiliateDto(affiliate.getId(), affiliate.getUser().getId(), affiliate.getAddress(), affiliate.getPhoneNumber(), affiliate.getTotalFee(), null);
+        return new AffiliateDto(affiliate.getId(), affiliate.getUser().getId(), affiliate.getAddress(), affiliate.getPhoneNumber(), null);
     }
 
     @Override
@@ -144,16 +162,19 @@ public class UserServiceImpl implements UserService {
             products.add(product);
 
             AffiliateProducts affiliateProducts = new AffiliateProducts();
+            String referralCode = StringUtils.randomString(10, null);
             affiliateProducts.setAffiliate(affiliate);
             affiliateProducts.setIsValidMerchant(false);
             affiliateProducts.setProduct(product);
+            affiliateProducts.setReferralCode(referralCode);
 
-            String url = productDto.linkProduct() + "&affiliate=" + affiliate.getId();
+            String hashReferral = StringUtils.base64Encode(referralCode);
+            String url = productDto.linkProduct() + "&referral=" + hashReferral;
             affiliateProducts.setLinkAffiliate(url);
             affiliateProductRepository.persist(affiliateProducts);
         }
 
         List<ProductDto> productDtos = products.stream().map(data -> mapper.convertValue(data, ProductDto.class)).toList();
-        return new AffiliateDto(affiliate.getId(), affiliate.getUser().getId(), affiliate.getAddress(), affiliate.getPhoneNumber(), affiliate.getTotalFee(), productDtos);
+        return new AffiliateDto(affiliate.getId(), affiliate.getUser().getId(), affiliate.getAddress(), affiliate.getPhoneNumber(), productDtos);
     }
 }

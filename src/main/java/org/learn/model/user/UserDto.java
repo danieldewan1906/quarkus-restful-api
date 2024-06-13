@@ -12,6 +12,7 @@ public record UserDto(
         String role,
         Boolean isMerchant,
         Boolean isAffiliate,
+        Double totalFee,
         List<ProductDto> products
 ) {
 }

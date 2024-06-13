@@ -35,6 +35,9 @@ public class AffiliateProducts extends PanacheEntityBase implements Serializable
     @Column(name = "link_affiliate", nullable = true, unique = true)
     private String linkAffiliate;
 
+    @Column(name = "referral_code", nullable = false, unique = true)
+    private String referralCode;
+
     @Column(name = "created_at", nullable = false)
     private Date createdAt = new Date();
 

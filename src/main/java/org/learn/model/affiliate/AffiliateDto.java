@@ -13,7 +13,6 @@ public record AffiliateDto(
         @JsonProperty("phone_number")
         String phoneNumber,
         @JsonProperty("total_fee")
-        Long totalFee,
         List<ProductDto> products
 ) {
 }

@@ -36,9 +36,6 @@ public class Affiliate extends PanacheEntityBase implements Serializable {
     @Column(name = "is_request_admin", nullable = false)
     private Boolean isRequestAdmin = true;
 
-    @Column(name = "total_fee")
-    private Long totalFee;
-
     @Column(name = "created_at", nullable = false)
     private Date createdAt = new Date();
 
